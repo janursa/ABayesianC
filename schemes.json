@@ -2,43 +2,26 @@
 	"schemes":[
 		{
 			"configs":{
-				"exp_duration" : 72,
-				"domain":{
-					"x_l": 0.34,
-					"y_l": 0.34,
-					"patch_size": 0.015,
-					"measurements":[
-						{
-							"on":"patch",
-							"mode": "mean",
-							"tags":["pH","Mg","lactate"]
-						}
-					]
-				},
-				"patch":{
-					"attrs":{ "Mg":12, "pH":7.8,"agent_density":0}
-				},
-				"agents":{
-					"MSC":{
-						"initial_n": 100,
-						"attrs":{"size":0.015,"pH":7.8, "lactate":0, "MI":0}
-						},
-					"Dead":{
-						"initial_n": 0,
-						"attrs":{"size":0.0075}
-						}
-
-				}
-
-			},
-			"returns":{
-				"agents_count": [24,48,72]
-			},
+			    "patch":{
+			        "attrs":{ "Mg":0}
+			      }
+		    },
 			"expectations":{
-				"liveCellCount": [100,160,270],
+				"liveCellCount": [120,260,370],
 				"viability":[0.95]
-				
+			}
+		},
+		{
+			"configs":{
+			    
+			    "patch":{
+			        "attrs":{ "Mg":3.6}
+			      }
 
+		    },
+			"expectations":{
+				"liveCellCount": [120,240,470],
+				"viability":[0.93]
 			}
 		}
 	]
