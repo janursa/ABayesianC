@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(1,"/Users/matin/Downloads/testProjs/ABC/ABC/src/")
-from ABC import ABC
+from ABC import ABC, clock
 
 sys.path.insert(1,"/Users/matin/Downloads/testProjs/CA")
 from model import Model
@@ -12,7 +12,6 @@ with open(SCHEMES_PATH) as schemes_file:
 
 
 def run(paramset,args):
-
 	model = args["model"]
 	schemes = args["schemes"]
 	replica_n = args["replica_n"]
@@ -48,27 +47,28 @@ def run(paramset,args):
 
 	rep_distances = []
 	for rep_i in range(replica_n):
-	    try:
-	        sim_results_list = model(paramset).run(schemes_copy)
-	    except ValueError:
+		
+		try:
+			sim_results_list = model(paramset).run(schemes_copy)
+		except ValueError:
 	        # None value if the param set leads to invalid definition
-	        distances = np.append(distances,None) 
-	        break
-	    distance = distance_function(sim_results_list,expectations)
-	    rep_distances.append(distance)
+	        # distances = np.append(distances,None) 
+			return None
+		distance = distance_function(sim_results_list,expectations)
+		rep_distances.append(distance)
 	error = np.mean(rep_distances)
 	return error
 
 settings = {
 	"MPI_flag": True,
-	"sample_n": 10,
+	"sample_n": 7,
 	"top_n": 2,
 	"output_path": "outputs",
 	"run_func":run,
 	"args":{
 		"model":Model,
 		"schemes":schemes,
-		"replica_n":2
+		"replica_n":1
 	}
 
 }
@@ -77,10 +77,9 @@ free_params = {
 #     "AE_H_t": [0,1],
 #     "AE_L_t": [0,1],
 #     "B_MSC_rec": [0.001,0.005],
-    "B_MSC_Pr": [0.01,0.05],
-#     "B_MSC_Mo": [0.0015,0.01],
-    "CD_H_t": [0.5,1],
-    "CD_L_t": [0,0.5]
+    "B_MSC_Pr": [0.01,0.05]
+    # "CD_H_t": [0.5,1],
+    # "CD_L_t": [0,0.5]
 #     "CD_M_t1": 0.3,
 #     "CD_M_t2": 0.6,
 #     "MG_H_t": [15,40],
@@ -94,5 +93,8 @@ free_params = {
 }
 if __name__ == "__main__":
 	obj = ABC(settings=settings,free_params=free_params)
-	obj.sample()
-	obj.run()
+	# obj.sample()
+	# clock.start()
+	# obj.run()
+	# clock.end()
+	obj.postprocessing()
