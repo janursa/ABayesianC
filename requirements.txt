@@ -1,6 +1,0 @@
-diversipy
-plotly
-pandas
-psutil
-orca
-mpi4py

@@ -1,10 +1,15 @@
+"""This module contains ABC class
+Author: Jalil Nourisa
+"""
 import time
 import numpy as np
 import os
 import json
 from diversipy import lhd_matrix
 from diversipy import transform_spread_out
-from plots import box_plot
+import plotly.graph_objects as go
+import plotly.offline
+
 class clock:
     start_t = 0
     end_t = 0
@@ -16,13 +21,62 @@ class clock:
         clock.end_t = time.time()
         print('Elapsed time: ',clock.end_t - clock.start_t)
 
+def box_plot(scalled_posteriors,path_to_save):
+    traces = []
+    ii = 0
+    for key,value in scalled_posteriors.items():
+        traces.append(go.Box(
+            y=value,
+            name=key,
+            boxpoints='all',
+            jitter=0,
+            marker_size=5,
+            whiskerwidth=0.2,
+            line_width=2)
+                     )
+        ii += 1
+    layout = go.Layout(yaxis=dict(
+    #                             autorange=True,
+    #                             showgrid=False,
+                                dtick=0.2,
+                                zeroline = False,range= [-0.1,1.1]
+                                ),
+                        margin=dict(
+                                l=40,
+                                r=30,
+                                b=80,
+                                t=100
+                            ),
+                        showlegend=False,
+                        paper_bgcolor='rgb(243, 243, 243)',
+                        plot_bgcolor='rgb(243, 243, 243)',
+                       )
+    fig = { "data": traces,"layout":layout }
+    plotly.io.write_image(fig = { "data": traces,"layout":layout }, file=path_to_save+'/box_plot.svg',format="svg",scale=None, width=None, height=None)
+    
 class ABC:
-    settings = 0
-    comm = 0
-    rank = 0
-    param_sets = 0
+
+    """ Contains essential function for ABC 
+    
+    Attributes:
+        comm : MPI communication object
+        rank (int): ID of each processor
+        free_params (dict): Content of free parameteres including their tags and bounds
+        free_params_bounds (narray): Bounds for each free parameter
+        free_params_keys (array): Names of free parameters
+        param_sets (list): The list of pararameter sets created during sampling
+        settings (dict): Settings of the analysis
+    """
+
     def __init__(self,free_params,settings):
+        """Generates ABM object. Receives free paramatere lists and settings.
+        
+        Args:
+            free_params (dict): Content of free parameteres including their tags and bounds
+            settings (dict): Settings of the analysis
+        """
         self.settings = settings
+
         if self.settings["MPI_flag"]:
             from mpi4py import MPI
             self.comm = MPI.COMM_WORLD
@@ -34,17 +88,19 @@ class ABC:
             self.free_params = free_params
             self.free_params_keys = list(free_params.keys())
             self.free_params_bounds = list(free_params.values())
-            
-
             try:
                 os.makedirs(self.settings["output_path"])
             except OSError:
-                print ("Creation of the directory %s failed" % self.settings["output_path"])
+                print("Creation of the directory %s failed" % self.settings["output_path"])
             else:
-                print ("Successfully created the directory %s " % self.settings["output_path"])
-
+                print("Successfully created the directory %s " % self.settings["output_path"])
 
     def sample(self):
+        """Conducts
+        - Uniform sampling from n-dimensional space of parameters within the bounds given as ABC.free_params.
+        - Creates parameter sets and outputs them
+
+        """
         if self.rank == 0:
             # python version > 3.6
             non_scalled_samples = transform_spread_out(lhd_matrix(self.settings["sample_n"], len(self.free_params))).transpose()
@@ -75,7 +131,8 @@ class ABC:
             self.param_sets = param_sets
 
     def run(self):
-        
+        """Summary
+        """
         if self.rank == 0:
             # reload
             with open(self.settings["output_path"]+'/param_sets.json') as file:
@@ -100,6 +157,15 @@ class ABC:
         paramsets = self.comm.bcast(paramsets,root = 0) 
 
         def run_model(start,end):
+            """Summary
+            
+            Args:
+                start (TYPE): Description
+                end (TYPE): Description
+            
+            Returns:
+                TYPE: Description
+            """
             distances = []
             for i in range(start,end):
                 distance = self.settings["run_func"](paramsets[i],self.settings["args"])
@@ -116,6 +182,8 @@ class ABC:
 
             np.savetxt(self.settings["output_path"]+'/distances.txt',np.array(distances),fmt='%s')
     def postprocessing(self):
+        """Summary
+        """
         if self.rank == 0:
             # reload 
             distances = []
@@ -159,3 +227,8 @@ class ABC:
                 scalled = list(map(lambda x: (x-min_v)/(max_v-min_v),values))
                 scalled_posteriors.update({key:scalled})
             box_plot(scalled_posteriors,self.settings["output_path"])
+
+    settings = 0
+    comm = 0
+    rank = 0
+    param_sets = 0
