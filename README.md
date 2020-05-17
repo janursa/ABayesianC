@@ -93,6 +93,13 @@ def custom_func(paramset,args):
     distance = np.abs(results - empirical_data) # distance is defined in this case as absolute difference
     return distance
 ```
+***Attentions***: `paramset` is a python dictionary contenting a set of parameter-value items as shown below. The user defined `model` must be able to integrate this parameter set. 
+```py
+{
+    'p_name_1':2.3,
+    'p_name_2':7.8
+}
+```
 More elaboration and examples will come soon.
 
 ### Parallel or serial use

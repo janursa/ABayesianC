@@ -131,7 +131,7 @@ class ABC:
             self.param_sets = param_sets
 
     def run(self):
-        """Summary
+        """Runs the user given model for the parameter sets. 
         """
         if self.rank == 0:
             # reload
@@ -157,15 +157,6 @@ class ABC:
         paramsets = self.comm.bcast(paramsets,root = 0) 
 
         def run_model(start,end):
-            """Summary
-            
-            Args:
-                start (TYPE): Description
-                end (TYPE): Description
-            
-            Returns:
-                TYPE: Description
-            """
             distances = []
             for i in range(start,end):
                 distance = self.settings["run_func"](paramsets[i],self.settings["args"])
@@ -182,7 +173,7 @@ class ABC:
 
             np.savetxt(self.settings["output_path"]+'/distances.txt',np.array(distances),fmt='%s')
     def postprocessing(self):
-        """Summary
+        """Conducts post processing tasks. Currently it extracts top fits and posteriors and also plots scaled posteriors.  
         """
         if self.rank == 0:
             # reload 
