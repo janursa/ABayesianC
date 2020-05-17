@@ -5,17 +5,15 @@
 
   
 
-This package conducts generic ABC on the given model for the free parameters. Basically, ABC does the followings:
+This package conducts generic ABC on a given model and parameters. Basically, ABC does the followings:
 
-- Sample uniformly from the n-dimensional space of the given parameters within the given bounds for each parameter
+- Sample uniformly from the n-dimensional space of the parameters 
 
 - Create a parameter set for each of sample sets
 
-- Run the given model for each parameter set and collect distance/error value
+- Run the given model for each parameter set and collect error value
 
-- Choose the top n points from the samples based on the rejection algorithm and generate posterior for each free parameter
-
-- Outputs the posteriors
+- Choose the best fits by the rejection algorithm 
 
   
 ## Getting started
@@ -56,102 +54,45 @@ mpiexec -n available_cpu_threads --use-hwthread-cpus python test.py
 
 ABC module receives two inputs from users.  First, the free parameters' list that is a python dictionary that contains the names and bounds (min and max) of each free parameter, as shown below:
 
-  
-
 ```python
-
-  
-
 free_params = {
-
-'p_name_1': [1.1,4.3], # [min,max]
-
-'p_name_2': [6.4,23.1]
-
+    'p_name_1': [1.1,4.3], # [min,max]
+    'p_name_2': [6.4,23.1]
 }
-
 ```
-
-  
-
 Second, the settings that is another python dictionary that contains user-specific information:
 
-  
-
 ```py
-
-  
-
 settings = {
-
-  
-
-"MPI_flag": True, # Use of MPI
-
-  
-
-"sample_n": 10000,  # Sample number
-
-  
-
-"top_n": 100, # Number of top selected samples, i.e. posterior
-
-  
-
-"output_path": "outputs", # Relative output directory to save the results
-
-  
-
-"run_func":custom_func, # A custom function that calculates the error for a given dataset
-
-  
-
-"args":{  # Optional arguments that `custom_func` requires during calculations
-
-"model": Model, # e.g. the model that reads parameter set and returns some results
-
-  
-
-"replica_n":3 # e.g. number of replica run for each param set
-
+    "MPI_flag": True, # Use of MPI
+    "sample_n": 10000,  # Sample number
+    "top_n": 100, # Number of top selected samples, i.e. posterior
+    "output_path": "outputs", # Relative output directory to save the results
+    "run_func":custom_func, # A custom function that calculates the error for a given dataset
+    "args":{  # Optional arguments that `custom_func` requires during calculations
+        "model": Model, # e.g. the model that reads parameter set and returns some results
+        "replica_n":3 # e.g. number of replica run for each param set
+    }
 }
-
-  
-
-}
-
 ```
-
 `run_func` is the most important parameter that needs to be designed specifically for each problem.  It can be generally formatted as:
 
 ```py
-
 def custom_func(paramset,args):
-
-return distance
-
+    return distance
 ```
-
 Which receives a paramset, passed by the ABC algorithm, alongside with other parameters encapsulated as args that would be needed to calculate distance function by the user. This function ultimately returns the distance calculated for the given paramset, which is Python `float` variable.
 
 To elaborate `run_func` for a case example:
 
 ```py
-
 def custom_func(paramset,args):
-
-model = args[0]
-
-empirical_data = user_defined_variable
-
-results = model(paramset) # runs the model for the given param set
-
-distance = np.abs(results - empirical_data) # distance is defined in this case as absolute difference
-
-return distance
-
+    model = args['model']
+    empirical_data = user_defined_variable
+    results = model(paramset) # runs the model for the given param set
+    distance = np.abs(results - empirical_data) # distance is defined in this case as absolute difference
+    return distance
 ```
-
 More elaboration and examples will come soon.
 
 ### Parallel or serial use
@@ -161,27 +102,17 @@ For serial use case, simply command:
 ```py
 
 from ABC import tools
-
 obj = tools.ABC(settings = settings, free_params = free_params)
-
 obj.sample()
-
 obj.run()
-
 obj.postprocess()
-
 ```
-
 To run the model in parallel using MPI, save the above mentioned commands as a script and run it from Terminal:
 
 ```py
-
 # in terminal
-
 mpiexec -n available_cpu_core python test.py
-
 ```
-
 `available_cpu_core` is the CPU core number that user intend to allocate for this process. For more info, see [MPI for Python](https://mpi4py.readthedocs.io/en/stable/).
 
 ### Outputs
@@ -205,8 +136,6 @@ Or, download the package and in the root folder, command:
 ## Useful links
 
 Read more on [MPI for Python](https://mpi4py.readthedocs.io/en/stable/).
-
-  
 
 ### Acknowledgments
 
