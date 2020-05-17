@@ -142,7 +142,7 @@ Or, download the package and in the root folder, command:
 
 ## Useful links
 
-Read more on [MPI for Python](https://mpi4py.readthedocs.io/en/stable/).
+ [MPI for Python](https://mpi4py.readthedocs.io/en/stable/).
 
 ### Acknowledgments
 
