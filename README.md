@@ -134,7 +134,7 @@ Using pip manager:
 
 Or, download the package and in the root folder, command:
 
--  `python3 install setup.py`
+-  `python3 setup.py install`
 
 ## Authors
 
