@@ -29,7 +29,7 @@ setuptools.setup(
     url="https://github.com/janursa/ABC",
     packages=setuptools.find_packages(),
     install_requires=['diversipy >=0.8', 'plotly >= 4.6.0', 'pandas >= 1.0.3', 'numpy >= 1.18.4','psutil >= 5.7.0', 
-    'orca >= 1.5.3', 'mpi4py >= 3.0.3','requests >= 2.23.0'],
+    'pprogress>=0.0.5', 'mpi4py >= 3.0.3','requests >= 2.23.0'],
     classifiers=[
         "Programming Language :: Python :: 3",
         # "License :: OSI Approved :: MIT License",

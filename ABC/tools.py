@@ -4,6 +4,7 @@ Author: Jalil Nourisa
 import time
 import numpy as np
 import os
+from pprogress import ProgressBar
 import json
 from diversipy import lhd_matrix
 from diversipy import transform_spread_out
@@ -22,10 +23,10 @@ class clock:
         print('Elapsed time: ',clock.end_t - clock.start_t)
 
 def box_plot(scalled_posteriors,path_to_save):
-    traces = []
+    fig = go.Figure()
     ii = 0
     for key,value in scalled_posteriors.items():
-        traces.append(go.Box(
+        fig.add_trace(go.Box(
             y=value,
             name=key,
             boxpoints='all',
@@ -35,7 +36,7 @@ def box_plot(scalled_posteriors,path_to_save):
             line_width=2)
                      )
         ii += 1
-    layout = go.Layout(yaxis=dict(
+    fig.update_layout(yaxis=dict(
     #                             autorange=True,
     #                             showgrid=False,
                                 dtick=0.2,
@@ -51,8 +52,7 @@ def box_plot(scalled_posteriors,path_to_save):
                         paper_bgcolor='rgb(243, 243, 243)',
                         plot_bgcolor='rgb(243, 243, 243)',
                        )
-    fig = { "data": traces,"layout":layout }
-    plotly.io.write_image(fig = { "data": traces,"layout":layout }, file=path_to_save+'/box_plot.svg',format="svg",scale=None, width=None, height=None)
+    fig.write_html(path_to_save+'/box_plot.html')
     
 class ABC:
 
@@ -138,6 +138,7 @@ class ABC:
             with open(self.settings["output_path"]+'/param_sets.json') as file:
                 self.param_sets = json.load(file)["param_sets"]
             CPU_n = self.comm.Get_size()
+            print("Number of CPUs assigned: ",CPU_n)
             shares = np.ones(CPU_n,dtype=int)*int(len(self.param_sets)/CPU_n)
             plus = len(self.param_sets)%CPU_n
             for i in range(plus):
@@ -157,10 +158,14 @@ class ABC:
         paramsets = self.comm.bcast(paramsets,root = 0) 
 
         def run_model(start,end):
+            pb = ProgressBar(end-start)
             distances = []
             for i in range(start,end):
                 distance = self.settings["run_func"](paramsets[i],self.settings["args"])
                 distances.append(distance)
+
+                pb.update()
+            pb.done()
             return distances
         distances_perCore = run_model(portion[0],portion[1])
         
