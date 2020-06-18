@@ -85,9 +85,12 @@ class ABC:
             self.rank = 0
 
         if self.rank == 0:
+            print("Number of CPUs assigned: ",self.comm.Get_size())
+            print("Sample number: ",settings['sample_n'])
             self.free_params = free_params
             self.free_params_keys = list(free_params.keys())
             self.free_params_bounds = list(free_params.values())
+            print("The list of free parameters: ",self.free_params_keys)
             try:
                 os.makedirs(self.settings["output_path"])
             except OSError:
@@ -138,7 +141,6 @@ class ABC:
             with open(self.settings["output_path"]+'/param_sets.json') as file:
                 self.param_sets = json.load(file)["param_sets"]
             CPU_n = self.comm.Get_size()
-            print("Number of CPUs assigned: ",CPU_n)
             shares = np.ones(CPU_n,dtype=int)*int(len(self.param_sets)/CPU_n)
             plus = len(self.param_sets)%CPU_n
             for i in range(plus):
@@ -161,9 +163,8 @@ class ABC:
             pb = ProgressBar(end-start)
             distances = []
             for i in range(start,end):
-                distance = self.settings["run_func"](paramsets[i],self.settings["args"])
+                distance = self.settings["model"](paramsets[i]).run()
                 distances.append(distance)
-
                 pb.update()
             pb.done()
             return distances
@@ -216,14 +217,35 @@ class ABC:
                  file.write(json.dumps({'posteriors': posteriors}))
 
             # box plot
-            scalled_posteriors = {}
-            for key,values in posteriors.items():
-                min_v = self.free_params[key][0]
-                max_v = self.free_params[key][1]
-                scalled = list(map(lambda x: (x-min_v)/(max_v-min_v),values))
-                scalled_posteriors.update({key:scalled})
-            box_plot(scalled_posteriors,self.settings["output_path"])
+            if self.settings["plot"]:
+                scalled_posteriors = {}
+                for key,values in posteriors.items():
+                    min_v = self.free_params[key][0]
+                    max_v = self.free_params[key][1]
+                    scalled = list(map(lambda x: (x-min_v)/(max_v-min_v),values))
+                    scalled_posteriors.update({key:scalled})
+                box_plot(scalled_posteriors,self.settings["output_path"])
 
+            ## top parameter sets
+            if self.settings["test"]:
+
+                with open(self.settings["output_path"]+'/param_sets.json') as file:
+                    self.param_sets = np.array(json.load(file)["param_sets"])   
+                top_param_sets = self.param_sets[top_ind] 
+                top_param_sets_json = {'top_param_sets':list(top_param_sets)}
+                with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
+                    file.write(json.dumps(top_param_sets_json))
+
+                print("Running tests")
+                pb = ProgressBar(len(top_param_sets))
+                top_results = []
+                for paramset in top_param_sets:
+                    results = self.settings["model"](paramset).test()
+                    top_results.append(results)
+                    pb.update()
+                pb.done()
+                with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
+                    file.write(json.dumps({'top_results':top_results},indent=4))
     settings = 0
     comm = 0
     rank = 0
