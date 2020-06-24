@@ -183,6 +183,7 @@ class ABC:
         """
         if self.rank == 0:
             # reload 
+
             distances = []
             with open(self.settings["output_path"]+'/distances.txt') as file:
                 for line in file:
@@ -206,6 +207,7 @@ class ABC:
             top_ind = np.argpartition(fitness_values, -top_n)[-top_n:]
             top_fitess_values = fitness_values[top_ind]
             np.savetxt(self.settings["output_path"]+'/top_fitness.txt',top_fitess_values,fmt='%f')
+            np.savetxt(self.settings["output_path"]+'/top_ind.txt',top_ind,fmt='%d')
 
             # extract posteriors
             top_fit_samples = samples[top_ind].transpose()
@@ -215,7 +217,13 @@ class ABC:
                 posteriors = {self.free_params_keys[0]:list(top_fit_samples)}
             with open(self.settings["output_path"]+'/posterior.json', 'w') as file:
                  file.write(json.dumps({'posteriors': posteriors}))
-
+            # calculate median value 
+            from statistics import median
+            medians = {}
+            for (key,distribution) in posteriors.items():
+                medians.update({key:median(distribution)})
+            with open(self.settings["output_path"]+'/medians.json', 'w') as file:
+                 file.write(json.dumps({'medians': medians}))
             # box plot
             if self.settings["plot"]:
                 scalled_posteriors = {}
@@ -225,16 +233,22 @@ class ABC:
                     scalled = list(map(lambda x: (x-min_v)/(max_v-min_v),values))
                     scalled_posteriors.update({key:scalled})
                 box_plot(scalled_posteriors,self.settings["output_path"])
-
-            ## top parameter sets
+    def run_tests(self):
+        if self.rank == 0:
+        ## top parameter sets
             if self.settings["test"]:
+                import csv
+
+                
+                top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
+                top_ind = np.array(top_ind,int)
 
                 with open(self.settings["output_path"]+'/param_sets.json') as file:
                     self.param_sets = np.array(json.load(file)["param_sets"])   
                 top_param_sets = self.param_sets[top_ind] 
                 top_param_sets_json = {'top_param_sets':list(top_param_sets)}
                 with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
-                    file.write(json.dumps(top_param_sets_json))
+                    file.write(json.dumps(top_param_sets_json,indent = 4))
 
                 print("Running tests")
                 pb = ProgressBar(len(top_param_sets))
