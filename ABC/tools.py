@@ -194,7 +194,6 @@ class ABC:
                         value = None
                     distances.append(value)
             samples = np.loadtxt(self.settings["output_path"]+'/samples.txt', dtype=float)
-
             # top fitnesses
             top_n = self.settings["top_n"]
             fitness_values = np.array([])
@@ -205,6 +204,8 @@ class ABC:
                     fitness = 1 - item
                 fitness_values = np.append(fitness_values,fitness)
             top_ind = np.argpartition(fitness_values, -top_n)[-top_n:]
+            for index in top_ind:
+                print("index {} distance {}".format(index,distances[index]))
             top_fitess_values = fitness_values[top_ind]
             np.savetxt(self.settings["output_path"]+'/top_fitness.txt',top_fitess_values,fmt='%f')
             np.savetxt(self.settings["output_path"]+'/top_ind.txt',top_ind,fmt='%d')
@@ -234,33 +235,79 @@ class ABC:
                     scalled_posteriors.update({key:scalled})
                 box_plot(scalled_posteriors,self.settings["output_path"])
     def run_tests(self):
+        if not self.settings["test"]:
+            return
+        # if self.rank == 0:
+        #     ## top parameter sets
+        #     top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
+        #     top_ind = np.array(top_ind,int)
+        #
+        #     with open(self.settings["output_path"]+'/param_sets.json') as file:
+        #         self.param_sets = np.array(json.load(file)["param_sets"])
+        #     top_param_sets = self.param_sets[top_ind]
+        #     top_param_sets_json = {'top_param_sets':list(top_param_sets)}
+        #     with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
+        #         file.write(json.dumps(top_param_sets_json,indent = 4))
+        #
+        #     print("Running tests")
+        #     pb = ProgressBar(len(top_param_sets))
+        #     top_results = []
+        #     for paramset in top_param_sets:
+        #         results = self.settings["model"](paramset).test()
+        #         top_results.append(results)
+        #         pb.update()
+        #     pb.done()
+        #     with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
+        #         file.write(json.dumps({'top_results':top_results},indent=4))
         if self.rank == 0:
-        ## top parameter sets
-            if self.settings["test"]:
-                import csv
+            # reload
+            top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
+            top_ind = np.array(top_ind,int)
 
-                
-                top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
-                top_ind = np.array(top_ind,int)
+            with open(self.settings["output_path"]+'/param_sets.json') as file:
+                self.param_sets = np.array(json.load(file)["param_sets"])
+            top_param_sets = self.param_sets[top_ind]
+            top_param_sets_json = {'top_param_sets':list(top_param_sets)}
+            with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
+                file.write(json.dumps(top_param_sets_json,indent = 4))
 
-                with open(self.settings["output_path"]+'/param_sets.json') as file:
-                    self.param_sets = np.array(json.load(file)["param_sets"])   
-                top_param_sets = self.param_sets[top_ind] 
-                top_param_sets_json = {'top_param_sets':list(top_param_sets)}
-                with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
-                    file.write(json.dumps(top_param_sets_json,indent = 4))
+            CPU_n = self.comm.Get_size()
+            shares = np.ones(CPU_n,dtype=int)*int(len(top_param_sets)/CPU_n)
+            plus = len(top_param_sets)%CPU_n
+            for i in range(plus):
+                shares[i]+=1
+            portions = []
+            for i in range(CPU_n):
+                start = i*shares[i-1]
+                end = start + shares[i]
+                portions.append([start,end])
+            paramsets = top_param_sets
 
-                print("Running tests")
-                pb = ProgressBar(len(top_param_sets))
-                top_results = []
-                for paramset in top_param_sets:
-                    results = self.settings["model"](paramset).test()
-                    top_results.append(results)
-                    pb.update()
-                pb.done()
-                with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
-                    file.write(json.dumps({'top_results':top_results},indent=4))
-    settings = 0
-    comm = 0
-    rank = 0
-    param_sets = 0
+        else:
+            portions = None
+            paramsets = None
+
+        portion = self.comm.scatter(portions,root = 0)
+        paramsets = self.comm.bcast(paramsets,root = 0)
+
+        def run_model(start,end):
+            pb = ProgressBar(end-start)
+            distances = []
+            for i in range(start,end):
+                distance = self.settings["model"](paramsets[i]).test()
+                distances.append(distance)
+                pb.update()
+            pb.done()
+            return distances
+        top_results_perCore = run_model(portion[0],portion[1])
+
+
+        top_results_stacks = self.comm.gather(top_results_perCore,root = 0)
+        if self.rank == 0:
+            top_results = np.array([])
+            for stack in top_results_stacks:
+                top_results = np.concatenate([top_results,stack],axis = 0)
+
+            with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
+                        file.write(json.dumps({'top_results':list(top_results)},indent=4))
+
