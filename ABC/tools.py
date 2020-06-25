@@ -119,6 +119,8 @@ class ABC:
             priors = {key:value for key,value in zip(self.free_params_keys,scaled_samples)}
             samples = np.array(scaled_samples).transpose()
             np.savetxt(self.settings["output_path"]+'/samples.txt', samples, fmt='%f')
+            with open(self.settings["output_path"]+'/priors.json','w') as file:
+                file.write(json.dumps(priors))
             ##### create parameter sets
             param_sets = []
             for sample in samples:
@@ -204,8 +206,6 @@ class ABC:
                     fitness = 1 - item
                 fitness_values = np.append(fitness_values,fitness)
             top_ind = np.argpartition(fitness_values, -top_n)[-top_n:]
-            for index in top_ind:
-                print("index {} distance {}".format(index,distances[index]))
             top_fitess_values = fitness_values[top_ind]
             np.savetxt(self.settings["output_path"]+'/top_fitness.txt',top_fitess_values,fmt='%f')
             np.savetxt(self.settings["output_path"]+'/top_ind.txt',top_ind,fmt='%d')
@@ -260,6 +260,7 @@ class ABC:
         #     with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
         #         file.write(json.dumps({'top_results':top_results},indent=4))
         if self.rank == 0:
+            print("Running tests")
             # reload
             top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
             top_ind = np.array(top_ind,int)
