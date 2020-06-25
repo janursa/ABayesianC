@@ -166,7 +166,19 @@ class ABC:
             pb = ProgressBar(end-start)
             distances = []
             for i in range(start,end):
-                distance = self.settings["model"](paramsets[i]).run()
+                replicas = []
+                flag = True
+                for j in range(self.settings["replica_n"]):
+                    distance_replica = self.settings["model"](paramsets[i]).run()
+                    if distance_replica is None:
+                        distances.append(None)
+                        flag = False
+                        break
+                    else:
+                        replicas.append(distance_replica)
+                if flag is False:
+                    continue
+                distance = np.mean(replicas)
                 distances.append(distance)
                 pb.update()
             pb.done()
