@@ -250,41 +250,20 @@ class ABC:
     def run_tests(self):
         if not self.settings["test"]:
             return
-        # if self.rank == 0:
-        #     ## top parameter sets
-        #     top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
-        #     top_ind = np.array(top_ind,int)
-        #
-        #     with open(self.settings["output_path"]+'/param_sets.json') as file:
-        #         self.param_sets = np.array(json.load(file)["param_sets"])
-        #     top_param_sets = self.param_sets[top_ind]
-        #     top_param_sets_json = {'top_param_sets':list(top_param_sets)}
-        #     with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
-        #         file.write(json.dumps(top_param_sets_json,indent = 4))
-        #
-        #     print("Running tests")
-        #     pb = ProgressBar(len(top_param_sets))
-        #     top_results = []
-        #     for paramset in top_param_sets:
-        #         results = self.settings["model"](paramset).test()
-        #         top_results.append(results)
-        #         pb.update()
-        #     pb.done()
-        #     with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
-        #         file.write(json.dumps({'top_results':top_results},indent=4))
         if self.rank == 0:
             print("Running tests")
-            # reload
+            # reload top indices from the post processssing
             top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
             top_ind = np.array(top_ind,int)
-
+            # reload parameter sets generated during sampling
             with open(self.settings["output_path"]+'/param_sets.json') as file:
                 self.param_sets = np.array(json.load(file)["param_sets"])
+            # exctract the top parameter sets
             top_param_sets = self.param_sets[top_ind]
             top_param_sets_json = {'top_param_sets':list(top_param_sets)}
             with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
                 file.write(json.dumps(top_param_sets_json,indent = 4))
-
+            # get the CPU info and assign tasks for each
             CPU_n = self.comm.Get_size()
             shares = np.ones(CPU_n,dtype=int)*int(len(top_param_sets)/CPU_n)
             plus = len(top_param_sets)%CPU_n
@@ -306,22 +285,20 @@ class ABC:
 
         def run_model(start,end):
             pb = ProgressBar(end-start)
-            distances = []
+            results_perCPU = []
             for i in range(start,end):
-                distance = self.settings["model"](paramsets[i]).test()
-                distances.append(distance)
+                results = self.settings["model"](paramsets[i]).test()
+                results_perCPU.append(results)
                 pb.update()
             pb.done()
-            return distances
+            return results_perCPU
         top_results_perCore = run_model(portion[0],portion[1])
-
-
+        # receive results of each CPU and stack them
         top_results_stacks = self.comm.gather(top_results_perCore,root = 0)
         if self.rank == 0:
             top_results = np.array([])
             for stack in top_results_stacks:
                 top_results = np.concatenate([top_results,stack],axis = 0)
-
+            # output the top results
             with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
                         file.write(json.dumps({'top_results':list(top_results)},indent=4))
-
