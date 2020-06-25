@@ -147,9 +147,10 @@ class ABC:
             plus = len(self.param_sets)%CPU_n
             for i in range(plus):
                 shares[i]+=1
+
             portions = []
             for i in range(CPU_n):
-                start = i*shares[i-1]
+                start = sum(shares[0:i])
                 end = start + shares[i]
                 portions.append([start,end])
             paramsets = self.param_sets
