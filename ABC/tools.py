@@ -5,10 +5,6 @@ import time
 import os
 from pprogress import ProgressBar
 import json
-from diversipy import lhd_matrix
-from diversipy import transform_spread_out
-import plotly.graph_objects as go
-import plotly.offline
 
 class clock:
     start_t = 0
@@ -105,6 +101,8 @@ class ABC:
         """
         if self.rank == 0:
             import numpy as np
+            from diversipy import lhd_matrix
+            from diversipy import transform_spread_out
             # python version > 3.6
             non_scalled_samples = transform_spread_out(lhd_matrix(self.settings["sample_n"], len(self.free_params))).transpose()
             scaled_samples = []
@@ -149,9 +147,10 @@ class ABC:
             plus = len(self.param_sets)%CPU_n
             for i in range(plus):
                 shares[i]+=1
+
             portions = []
             for i in range(CPU_n):
-                start = i*shares[i-1]
+                start = sum(shares[0:i])
                 end = start + shares[i]
                 portions.append([start,end])
             paramsets = self.param_sets
@@ -167,7 +166,19 @@ class ABC:
             pb = ProgressBar(end-start)
             distances = []
             for i in range(start,end):
-                distance = self.settings["model"](paramsets[i]).run()
+                replicas = []
+                flag = True
+                for j in range(self.settings["replica_n"]):
+                    distance_replica = self.settings["model"](paramsets[i]).run()
+                    if distance_replica is None:
+                        distances.append(None)
+                        flag = False
+                        break
+                    else:
+                        replicas.append(distance_replica)
+                if flag is False:
+                    continue
+                distance = np.mean(replicas)
                 distances.append(distance)
                 pb.update()
             pb.done()
@@ -231,6 +242,8 @@ class ABC:
                  file.write(json.dumps({'medians': medians}))
             # box plot
             if self.settings["plot"]:
+                import plotly.graph_objects as go
+                import plotly.offline
                 scalled_posteriors = {}
                 for key,values in posteriors.items():
                     min_v = self.free_params[key][0]
@@ -241,43 +254,20 @@ class ABC:
     def run_tests(self):
         if not self.settings["test"]:
             return
-        # if self.rank == 0:
-        #     ## top parameter sets
-        #     top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
-        #     top_ind = np.array(top_ind,int)
-        #
-        #     with open(self.settings["output_path"]+'/param_sets.json') as file:
-        #         self.param_sets = np.array(json.load(file)["param_sets"])
-        #     top_param_sets = self.param_sets[top_ind]
-        #     top_param_sets_json = {'top_param_sets':list(top_param_sets)}
-        #     with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
-        #         file.write(json.dumps(top_param_sets_json,indent = 4))
-        #
-        #     print("Running tests")
-        #     pb = ProgressBar(len(top_param_sets))
-        #     top_results = []
-        #     for paramset in top_param_sets:
-        #         results = self.settings["model"](paramset).test()
-        #         top_results.append(results)
-        #         pb.update()
-        #     pb.done()
-        #     with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
-        #         file.write(json.dumps({'top_results':top_results},indent=4))
         if self.rank == 0:
             print("Running tests")
             import numpy as np
-
-            # reload
             top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
             top_ind = np.array(top_ind,int)
-
+            # reload parameter sets generated during sampling
             with open(self.settings["output_path"]+'/param_sets.json') as file:
                 self.param_sets = np.array(json.load(file)["param_sets"])
+            # exctract the top parameter sets
             top_param_sets = self.param_sets[top_ind]
             top_param_sets_json = {'top_param_sets':list(top_param_sets)}
             with open(os.path.join(self.settings["output_path"],'top_param_sets.json'),'w') as file:
                 file.write(json.dumps(top_param_sets_json,indent = 4))
-
+            # get the CPU info and assign tasks for each
             CPU_n = self.comm.Get_size()
             shares = np.ones(CPU_n,dtype=int)*int(len(top_param_sets)/CPU_n)
             plus = len(top_param_sets)%CPU_n
@@ -299,16 +289,15 @@ class ABC:
 
         def run_model(start,end):
             pb = ProgressBar(end-start)
-            distances = []
+            results_perCPU = []
             for i in range(start,end):
-                distance = self.settings["model"](paramsets[i]).test()
-                distances.append(distance)
+                results = self.settings["model"](paramsets[i]).test()
+                results_perCPU.append(results)
                 pb.update()
             pb.done()
-            return distances
+            return results_perCPU
         top_results_perCore = run_model(portion[0],portion[1])
-
-
+        # receive results of each CPU and stack them
         top_results_stacks = self.comm.gather(top_results_perCore,root = 0)
         if self.rank == 0:
             import numpy as np
@@ -316,7 +305,6 @@ class ABC:
             top_results = np.array([])
             for stack in top_results_stacks:
                 top_results = np.concatenate([top_results,stack],axis = 0)
-
+            # output the top results
             with open(os.path.join(self.settings["output_path"],'top_results.json'),'w') as file:
                         file.write(json.dumps({'top_results':list(top_results)},indent=4))
-
