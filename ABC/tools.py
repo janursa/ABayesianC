@@ -18,7 +18,7 @@ class clock:
         print('Elapsed time: ',clock.end_t - clock.start_t)
 
 def box_plot(scalled_posteriors,path_to_save):
-    
+
     import plotly.graph_objects as go
     import plotly.offline
     fig = go.Figure()
@@ -181,7 +181,7 @@ class ABC:
                         replicas.append(distance_replica)
                 if flag is False:
                     continue
-                distance = np.mean(replicas)
+                distance = sum(replicas)/len(replicas)
                 distances.append(distance)
                 pb.update()
             pb.done()
