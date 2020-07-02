@@ -18,6 +18,9 @@ class clock:
         print('Elapsed time: ',clock.end_t - clock.start_t)
 
 def box_plot(scalled_posteriors,path_to_save):
+    
+    import plotly.graph_objects as go
+    import plotly.offline
     fig = go.Figure()
     ii = 0
     for key,value in scalled_posteriors.items():
@@ -242,8 +245,6 @@ class ABC:
                  file.write(json.dumps({'medians': medians}))
             # box plot
             if self.settings["plot"]:
-                import plotly.graph_objects as go
-                import plotly.offline
                 scalled_posteriors = {}
                 for key,values in posteriors.items():
                     min_v = self.free_params[key][0]
