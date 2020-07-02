@@ -2,7 +2,6 @@
 Author: Jalil Nourisa
 """
 import time
-import numpy as np
 import os
 from pprogress import ProgressBar
 import json
@@ -105,6 +104,7 @@ class ABC:
 
         """
         if self.rank == 0:
+            import numpy as np
             # python version > 3.6
             non_scalled_samples = transform_spread_out(lhd_matrix(self.settings["sample_n"], len(self.free_params))).transpose()
             scaled_samples = []
@@ -139,6 +139,8 @@ class ABC:
         """Runs the user given model for the parameter sets. 
         """
         if self.rank == 0:
+            import numpy as np
+
             # reload
             with open(self.settings["output_path"]+'/param_sets.json') as file:
                 self.param_sets = json.load(file)["param_sets"]
@@ -175,6 +177,7 @@ class ABC:
 
         distances_stacks = self.comm.gather(distances_perCore,root = 0)
         if self.rank == 0:
+            import numpy as np
             distances = np.array([])
             for stack in distances_stacks:
                 distances = np.concatenate([distances,stack],axis = 0)
@@ -185,6 +188,7 @@ class ABC:
         """
         if self.rank == 0:
             # reload 
+            import numpy as np
 
             distances = []
             with open(self.settings["output_path"]+'/distances.txt') as file:
@@ -261,6 +265,8 @@ class ABC:
         #         file.write(json.dumps({'top_results':top_results},indent=4))
         if self.rank == 0:
             print("Running tests")
+            import numpy as np
+
             # reload
             top_ind = np.loadtxt(self.settings["output_path"]+'/top_ind.txt')
             top_ind = np.array(top_ind,int)
@@ -305,6 +311,8 @@ class ABC:
 
         top_results_stacks = self.comm.gather(top_results_perCore,root = 0)
         if self.rank == 0:
+            import numpy as np
+
             top_results = np.array([])
             for stack in top_results_stacks:
                 top_results = np.concatenate([top_results,stack],axis = 0)
