@@ -111,6 +111,7 @@ class ABC:
             scaled_samples = []
             ii = 0
             for bounds in self.free_params_bounds:
+
                 low = bounds[0]
                 high = bounds[1]
                 pre_samples_param = non_scalled_samples[ii]
@@ -119,7 +120,7 @@ class ABC:
                 ii+=1
             priors = {key:value for key,value in zip(self.free_params_keys,scaled_samples)}
             samples = np.array(scaled_samples).transpose()
-            np.savetxt(self.settings["output_path"]+'/samples.txt', samples, fmt='%f')
+            np.savetxt(self.settings["output_path"]+'/samples.txt', samples, fmt='%.12f')
             with open(self.settings["output_path"]+'/priors.json','w') as file:
                 file.write(json.dumps(priors))
             ##### create parameter sets
@@ -166,6 +167,7 @@ class ABC:
         paramsets = self.comm.bcast(paramsets,root = 0) 
 
         def run_model(start,end):
+            #print("\n start {} end {} rank {}".format(start,end,self.rank))
             pb = ProgressBar(end-start)
             distances = []
             for i in range(start,end):
@@ -187,8 +189,6 @@ class ABC:
             pb.done()
             return distances
         distances_perCore = run_model(portion[0],portion[1])
-        
-
         distances_stacks = self.comm.gather(distances_perCore,root = 0)
         if self.rank == 0:
             import numpy as np
@@ -201,7 +201,7 @@ class ABC:
         """Conducts post processing tasks. Currently it extracts top fits and posteriors and also plots scaled posteriors.  
         """
         if self.rank == 0:
-            # reload 
+            # reload
             import numpy as np
 
             distances = []
@@ -214,6 +214,7 @@ class ABC:
                         value = None
                     distances.append(value)
             samples = np.loadtxt(self.settings["output_path"]+'/samples.txt', dtype=float)
+
             # top fitnesses
             top_n = self.settings["top_n"]
             fitness_values = np.array([])
@@ -236,7 +237,7 @@ class ABC:
                 posteriors = {self.free_params_keys[0]:list(top_fit_samples)}
             with open(self.settings["output_path"]+'/posterior.json', 'w') as file:
                  file.write(json.dumps({'posteriors': posteriors}))
-            # calculate median value 
+            # calculate median value
             from statistics import median
             medians = {}
             for (key,distribution) in posteriors.items():
