@@ -17,40 +17,7 @@ class clock:
         clock.end_t = time.time()
         print('Elapsed time: ',clock.end_t - clock.start_t)
 
-def box_plot(scalled_posteriors,path_to_save):
 
-    import plotly.graph_objects as go
-    import plotly.offline
-    fig = go.Figure()
-    ii = 0
-    for key,value in scalled_posteriors.items():
-        fig.add_trace(go.Box(
-            y=value,
-            name=key,
-            boxpoints='all',
-            jitter=0,
-            marker_size=5,
-            whiskerwidth=0.2,
-            line_width=2)
-                     )
-        ii += 1
-    fig.update_layout(yaxis=dict(
-    #                             autorange=True,
-    #                             showgrid=False,
-                                dtick=0.2,
-                                zeroline = False,range= [-0.1,1.1]
-                                ),
-                        margin=dict(
-                                l=40,
-                                r=30,
-                                b=80,
-                                t=100
-                            ),
-                        showlegend=False,
-                        paper_bgcolor='rgb(243, 243, 243)',
-                        plot_bgcolor='rgb(243, 243, 243)',
-                       )
-    fig.write_html(path_to_save+'/box_plot.html')
     
 class ABC:
 
@@ -89,12 +56,12 @@ class ABC:
             self.free_params_keys = list(free_params.keys())
             self.free_params_bounds = list(free_params.values())
             print("The list of free parameters: ",self.free_params_keys)
-            try:
-                os.makedirs(self.settings["output_path"])
-            except OSError:
-                print("Creation of the directory %s failed" % self.settings["output_path"])
-            else:
-                print("Successfully created the directory %s " % self.settings["output_path"])
+            # try:
+            #     os.makedirs(self.settings["output_path"])
+            # except OSError:
+            #     print("Creation of the directory %s failed" % self.settings["output_path"])
+            # else:
+            #     print("Successfully created the directory %s " % self.settings["output_path"])
 
     def sample(self):
         """Conducts
@@ -217,17 +184,15 @@ class ABC:
 
             # top fitnesses
             top_n = self.settings["top_n"]
-            fitness_values = np.array([])
-            for item in distances:
-                if item == None:
-                    fitness = 0
-                else:
-                    fitness = 1 - item
-                fitness_values = np.append(fitness_values,fitness)
-            top_ind = np.argpartition(fitness_values, -top_n)[-top_n:]
-            top_fitess_values = fitness_values[top_ind]
-            np.savetxt(self.settings["output_path"]+'/top_fitness.txt',top_fitess_values,fmt='%f')
-            np.savetxt(self.settings["output_path"]+'/top_ind.txt',top_ind,fmt='%d')
+            for i in range(len(distances)):
+                if distances[i] == None:
+                    distances[i] = 1000 # very high number
+
+            # top_ind = np.argpartition(fitness_values, -top_n)[-top_n:]
+            best_indices = distances.argsort()[:top_n]
+            best_distances = distances[best_indices]
+            np.savetxt(self.settings["output_path"]+'/best_distances.txt',best_distances,fmt='%f')
+            np.savetxt(self.settings["output_path"]+'/top_ind.txt',best_indices,fmt='%d')
 
             # extract posteriors
             top_fit_samples = samples[top_ind].transpose()
@@ -244,15 +209,9 @@ class ABC:
                 medians.update({key:median(distribution)})
             with open(self.settings["output_path"]+'/medians.json', 'w') as file:
                  file.write(json.dumps({'medians': medians}))
-            # box plot
-            if self.settings["plot"]:
-                scalled_posteriors = {}
-                for key,values in posteriors.items():
-                    min_v = self.free_params[key][0]
-                    max_v = self.free_params[key][1]
-                    scalled = list(map(lambda x: (x-min_v)/(max_v-min_v),values))
-                    scalled_posteriors.update({key:scalled})
-                box_plot(scalled_posteriors,self.settings["output_path"])
+
+
+
     def run_tests(self):
         if not self.settings["test"]:
             return
