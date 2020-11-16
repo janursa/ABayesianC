@@ -3,7 +3,7 @@ Author: Jalil Nourisa
 """
 import time
 import os
-from pprogress import ProgressBar
+# from pprogress import ProgressBar
 import json
 
 class clock:
@@ -135,7 +135,7 @@ class ABC:
 
         def run_model(start,end):
             #print("\n start {} end {} rank {}".format(start,end,self.rank))
-            pb = ProgressBar(end-start)
+            # pb = ProgressBar(end-start)
             distances = []
             for i in range(start,end):
                 replicas = []
@@ -152,8 +152,8 @@ class ABC:
                     continue
                 distance = sum(replicas)/len(replicas)
                 distances.append(distance)
-                pb.update()
-            pb.done()
+                # pb.update()
+            # pb.done()
             return distances
         distances_perCore = run_model(portion[0],portion[1])
         distances_stacks = self.comm.gather(distances_perCore,root = 0)
@@ -189,13 +189,14 @@ class ABC:
                     distances[i] = 1000 # very high number
 
             # top_ind = np.argpartition(fitness_values, -top_n)[-top_n:]
+            distances = np.array(distances)
             best_indices = distances.argsort()[:top_n]
             best_distances = distances[best_indices]
             np.savetxt(self.settings["output_path"]+'/best_distances.txt',best_distances,fmt='%f')
             np.savetxt(self.settings["output_path"]+'/top_ind.txt',best_indices,fmt='%d')
 
             # extract posteriors
-            top_fit_samples = samples[top_ind].transpose()
+            top_fit_samples = samples[best_indices].transpose()
             try:
                 posteriors = {key:list(value) for key,value in zip(self.free_params_keys,top_fit_samples)}
             except TypeError:
