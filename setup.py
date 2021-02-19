@@ -20,19 +20,19 @@ def extract_longDiscription(file_name):
     return long_description
 setuptools.setup(
     name="ABayesianC",
-    version=get_version("ABC/__init__.py"),
+    version=1.0.8,
     author="Jalil Nourisa",
     author_email="jalil.nourisa@gmail.com",
     description="A general-purpose approximate Bayesian calculation",
     long_description=extract_longDiscription("README.md"),
     long_description_content_type="text/markdown",
-    url="https://github.com/janursa/ABC",
+    url="https://github.com/janursa/ABayesianC",
     packages=setuptools.find_packages(),
     install_requires=['diversipy >=0.8', 'plotly >= 4.6.0', 'pandas >= 1.0.3', 'numpy >= 1.18.4','psutil >= 5.7.0', 
     'pprogress>=0.0.5', 'mpi4py >= 3.0.3','requests >= 2.23.0'],
     classifiers=[
         "Programming Language :: Python :: 3",
-        # "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',

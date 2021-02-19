@@ -17,8 +17,6 @@ class clock:
         clock.end_t = time.time()
         print('Elapsed time: ',clock.end_t - clock.start_t)
 
-
-    
 class ABC:
 
     """ Contains essential function for ABC 
