@@ -20,7 +20,7 @@ def extract_longDiscription(file_name):
     return long_description
 setuptools.setup(
     name="ABayesianC",
-    version=1.0.8,
+    version= '1.0.8',
     author="Jalil Nourisa",
     author_email="jalil.nourisa@gmail.com",
     description="A general-purpose approximate Bayesian calculation",

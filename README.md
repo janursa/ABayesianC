@@ -65,7 +65,7 @@ The provided `model` must:
 - has a function named `run` 
 - the `run` function runs the model and returns back the error/fitness value
 
-### Parallel run
+### Run in parallel
 
 To run the constructed script, e.g. `test.py`, in parallel, commain in terminal,
 
@@ -92,6 +92,11 @@ Using pip manager:
 Or, download the package and in the root folder, command:
 
 -  `python3 setup.py install`
+
+
+## To cite
+Cite this library using [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4552572.svg)](https://doi.org/10.5281/zenodo.4552572)
+
 
 ## Authors
 
