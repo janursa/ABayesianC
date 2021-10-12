@@ -71,6 +71,7 @@ class ABC:
             import numpy as np
             from diversipy import lhd_matrix
             from diversipy import transform_spread_out
+            print("Creating {} samples from the given parameters  ".format(self.settings['sample_n']))
             # python version > 3.6
             non_scalled_samples = transform_spread_out(lhd_matrix(self.settings["sample_n"], len(self.free_params))).transpose()
             scaled_samples = []
@@ -162,6 +163,7 @@ class ABC:
                 distances = np.concatenate([distances,stack],axis = 0)
 
             np.savetxt(self.settings["output_path"]+'/distances.txt',np.array(distances),fmt='%s')
+            print('The best error: ', min(distances))
     def postprocessing(self):
         """Conducts post processing tasks. Currently it extracts top fits and posteriors and also plots scaled posteriors.  
         """
@@ -208,6 +210,8 @@ class ABC:
                 medians.update({key:median(distribution)})
             with open(self.settings["output_path"]+'/medians.json', 'w') as file:
                  file.write(json.dumps({'medians': medians}))
+
+            return medians
 
 
 
